@@ -121,29 +121,31 @@ class EllipticCurve:
         return (y**2 % self.p) == (x**3 + self.a * x + self.b) % self.p
 
     def point_addition(self, P, Q):
-        """Add two points P and Q on the elliptic curve."""
-        if P is None:
-            return Q
-        if Q is None:
-            return P
-
         x1, y1 = P
         x2, y2 = Q
 
-        if P == Q:
-            if y1 == 0:
-                return None
-            m = (3 * x1**2 + self.a) * modular_inverse(2 * y1, self.p) % self.p
+        # Check if the points are the same to avoid division by zero
+        if x1 == x2:
+            if y1 == y2:  # Special case: point doubling
+                if y1 == 0:  # When the y-coordinate is 0, return point at infinity
+                    return None
+                m = (3 * x1 * x1 + self.a) * modular_inverse(2 * y1, self.p) % self.p
+            else:
+                # Points are vertical, return point at infinity (no valid result)
+                return None  # or handle the point at infinity case here
         else:
-            if x1 == x2:
-                return None
-            if x2 == x1:
-                return None
-            m = (y2 - y1) * modular_inverse(x2 - x1, self.p) % self.p
+            # Regular point addition
+            try:
+                m = (y2 - y1) * modular_inverse(x2 - x1, self.p) % self.p
+            except ZeroDivisionError:
+                return None  # handle cases where modular inverse fails
 
-        x3 = (m**2 - x1 - x2) % self.p
+        x3 = (m * m - x1 - x2) % self.p
         y3 = (m * (x1 - x3) - y1) % self.p
-        return (x3, y3)
+
+        return x3, y3
+
+
 
 def elliptic_curve_factorization(n, max_iterations=1000):
     """Elliptic Curve Factorization method to find all factors."""
