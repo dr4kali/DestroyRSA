@@ -148,42 +148,52 @@ class EllipticCurve:
 
 
 def elliptic_curve_factorization(n, max_iterations=1000):
-    """Elliptic Curve Factorization method to find all factors."""
+    """Elliptic Curve Factorization method to find all factors of a given number n."""
+    
     if n % 2 == 0:
-        return [2]
+        return [2]  # Handle even numbers quickly
 
-    factors = []  # List to store found factors
+    factors = []  # To store found factors
 
-    for _ in range(10):  # Retry with different curves
-        a = random.randint(1, n-1)
-        b = random.randint(1, n-1)
-        curve = EllipticCurve(a, b, n)
-
+    def find_point_on_curve(curve, n):
+        """Find a random point on the curve."""
         while True:
-            x1 = random.randint(1, n-1)
-            y1_squared = (x1**3 + a * x1 + b) % n
+            x1 = random.randint(1, n - 1)
+            y1_squared = (x1**3 + curve.a * x1 + curve.b) % n
             y1 = isqrt(y1_squared)
             if curve.is_point_on_curve(x1, y1):
-                break
+                return (x1, y1)
 
-        P = (x1, y1)
-        Q = P
-        d = 1
+    for _ in range(10):  # Retry with different curves if needed
+        a = random.randint(1, n - 1)
+        b = random.randint(1, n - 1)
+        curve = EllipticCurve(a, b, n)  # Generate random curve
+
+        # Try to find a point on the curve
+        P = find_point_on_curve(curve, n)
+        Q = P  # Initialize Q with P
 
         for i in range(max_iterations):
-            Q = curve.point_addition(Q, P)
+            Q = curve.point_addition(Q, P)  # Perform elliptic curve point addition
             if Q is None:
-                break
+                break  # Point addition failed, try another curve
             
+            # Calculate gcd to see if we've found a non-trivial divisor
             d = gcd(abs(Q[0] - P[0]), n)
 
-            if d > 1 and d not in factors:
-                factors.append(d)
+            if d > 1 and d != n:  # Valid factor found
+                if d not in factors:
+                    factors.append(d)
+                n //= d  # Divide n by the factor and continue
 
-            if len(factors) >= 2:
-                break
+            if n == 1 or len(factors) >= 2:
+                break  # We either factored completely or found enough factors
+
+    if n > 1 and n not in factors:
+        factors.append(n)  # If there's any leftover factor
 
     return factors if factors else None
+
 
 def is_quadratic_residue(n, p):
     """Check if n is a quadratic residue mod p using Euler's criterion."""
